@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Оплата билета</title>
+</head>
+<body>
+<!-- Optional JavaScript -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" ></script>
+
+<script>
+    function validate() {
+        const answer = "Please fill: ";
+        let result = answer;
+        if ($('#username').val() === '') {
+            result += "\n - field Name ";
+        }
+        if ($('#phone').val() === '') {
+            result += "\n - field Email ";
+        }
+        if ($('#email').val() === '') {
+            result += "\n - field Phone ";
+        }
+        if (answer !== result) {
+            alert(result);
+            return false;
+        }
+        return true;
+    }
+</script>
+<script>
+    function payTicket() {
+        if (validate() === true) {
+        let name = $("#username").val();
+        let email = $("#email").val();
+        let phone = $("#phone").val();
+        let arr = {name: name, email: email, phone: phone};
+        $.ajax({
+            async: false,
+            url: '/cinema/payment.do',
+            type: 'POST',
+            data: JSON.stringify(arr),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (data) {
+            if (data !== "back") {
+                paid(data);
+            } else {
+                failPaid(data);
+            }
+        }).fail(function (err) {
+            alert("Error");
+        });
+        }
+    }
+
+    $(document).ready(function () {
+        $.ajax({
+            type: 'GET',
+            url: '/cinema/payment.do',
+            dataType: 'json'
+        }).done(function (data) {
+            let result = "<div class=\"row pt-3\" id=\"comment\"><h3>"
+            result += "Вы выбрали ряд " + data.row + " место " + data.cell
+                + ", Сумма : " + data.sessionId.price + " рублей.";
+            result += "</h3></div>";
+            $("#comment").html(result);
+            console.log(data);
+        }).fail(function (err) {
+            console.log(err);
+        });
+    });
+</script>
+
+
+<script>
+    function paid(data) {
+        let result = "<div class=\"row pt-3\" id=\"comment\">"
+            + "<h4>" + "Билет на " + data.row + " ряд " + data.cell + " место успешно куплен." + "</h4></div>";
+        $("#container").html(result);
+    }
+</script>
+
+<script>
+    function redirect() {
+        window.location.href="http://localhost:8080/cinema/welcome/index.html";
+    }
+</script>
+
+<script>
+    function failPaid() {
+        let result = "<div class=\"row pt-3\" id=\"comment\">"
+            + "<h4>" + "Произошла ошибка при оплате, билет не был куплен." + "</h4></div>" +
+            "<div class=\"row float-right\" id=\"buttonId\">" +
+            "        <button type=\"button\" class=\"btn btn-success\" onclick=\"redirect()\">Возврат к выбору места</button>" +
+            "    </div>";
+        $("#container").html(result);
+    }
+</script>
+
+<div class="container" id="container">
+    <div class="row pt-3" id="comment">
+    </div>
+    <div class="row">
+        <form id="formId">
+            <div class="form-group">
+                <label for="username">ФИО</label>
+                <input type="text" class="form-control" id="username" placeholder="ФИО" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Номер телефона</label>
+                <input type="text" class="form-control" id="phone" placeholder="8(999)999-99-99)" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Почта</label>
+                <input type="text" class="form-control" id="email" placeholder="thomas@mail.ru" required>
+            </div>
+            <button type="button" class="btn btn-success" onclick="payTicket()">Оплатить</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
