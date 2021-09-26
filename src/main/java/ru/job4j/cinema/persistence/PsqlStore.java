@@ -9,14 +9,8 @@ import ru.job4j.cinema.model.Ticket;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
+import java.sql.*;
+import java.util.*;
 
 public class PsqlStore implements Store {
 
@@ -134,23 +128,18 @@ public class PsqlStore implements Store {
                     "INSERT INTO ticket(session_id, row, cell, account_id) "
                             + "VALUES (?,?,?,?)", PreparedStatement.RETURN_GENERATED_KEYS);
             ) {
-                cn.setAutoCommit(false);
-                Account acc = save(ticket.getAccount(), cn);
                 psTicket.setInt(1, ticket.getSessionId().getId());
                 psTicket.setInt(2, ticket.getRow());
                 psTicket.setInt(3, ticket.getCell());
-                psTicket.setInt(4, acc.getId());
+                psTicket.setInt(4, ticket.getAccount().getId());
                 psTicket.execute();
                 try (ResultSet id = psTicket.getGeneratedKeys()) {
                     if (id.next()) {
                         ticket.setId(id.getInt(1));
                     }
                 }
-
-                cn.commit();
             } catch (SQLException e) {
                 LOG.error("Exception", e);
-                cn.rollback();
             }
         }
         return ticket;
@@ -160,27 +149,24 @@ public class PsqlStore implements Store {
         try (Connection cn = pool.getConnection()) {
             try (PreparedStatement ps =  cn.prepareStatement(
                     "update ticket set session_id=?, row=?, cell=?, account_id=? where id=?;")) {
-                cn.setAutoCommit(false);
-                Account acc = save(ticket.getAccount(), cn);
                 ps.setInt(1, ticket.getSessionId().getId());
-                ps.setInt(2, acc.getId());
-                ps.setInt(3, ticket.getRow());
-                ps.setInt(4, ticket.getCell());
+                ps.setInt(2, ticket.getRow());
+                ps.setInt(3, ticket.getCell());
+                ps.setInt(4, ticket.getAccount().getId());
+                ps.setInt(5, ticket.getId());
                 ps.executeUpdate();
                 try (ResultSet id = ps.getGeneratedKeys()) {
                     if (id.next()) {
                         ticket.setId(id.getInt(1));
                     }
                 }
-                cn.commit();
             } catch (SQLException e) {
                 LOG.error("Exception", e);
-                cn.rollback();
             }
         }
     }
 
-    private Account save(Account account, Connection cn) throws SQLException {
+    public Account save(Account account, Connection cn) throws SQLException {
         Account rsl;
         if (account.getId() == 0) {
             rsl = create(account, cn);
@@ -284,6 +270,37 @@ public class PsqlStore implements Store {
     }
 
     @Override
+    public Ticket findTicketByPlace(int row, int cell) {
+        Ticket ticket = null;
+        try (Connection cn = pool.getConnection();
+             PreparedStatement ps =  cn.prepareStatement(
+                     "SELECT t.id tId,  t.row tRow, t.cell tCell, a.id aId, "
+                             + "a.username aName, a.email aEmail, a.phone aPhone, "
+                             + "s.id sId, s.time sTime, s.Price sPrice  "
+                             + "FROM ticket t left join account a on t.account_id=a.id "
+                             + "left join session s on t.id=s.id where t.row=? and t.cell=?;")) {
+            ps.setInt(1, row);
+            ps.setInt(2, cell);
+            try (ResultSet it = ps.executeQuery()) {
+                if (it.next()) {
+                    ticket = new Ticket(it.getInt("tId"),  it.getInt("tRow"),
+                            it.getInt("tCell"), null, null);
+                    Account account = new Account(it.getInt("aId"), it.getString("aName"),
+                            it.getString("aEmail"), it.getString("aPhone"));
+                    ticket.setAccount(account);
+                    HallSession hallSession = new HallSession(
+                            it.getInt("sId"), it.getTimestamp("sTime"),
+                            it.getInt("sPrice"));
+                    ticket.setSessionId(hallSession);
+                }
+            }
+        } catch (SQLException e) {
+            LOG.error("Exception", e);
+        }
+        return ticket;
+    }
+
+    @Override
     public Account findAccountById(int id) {
         Account account = null;
         try (Connection cn = pool.getConnection();
@@ -322,6 +339,25 @@ public class PsqlStore implements Store {
     }
 
     @Override
+    public Account findAccountByPhone(String phone) {
+        Account account = null;
+        try (Connection cn = pool.getConnection();
+             PreparedStatement ps =  cn.prepareStatement("SELECT * FROM account a where a.phone=?")
+        ) {
+            ps.setString(1, phone);
+            try (ResultSet it = ps.executeQuery()) {
+                if (it.next()) {
+                    account = new Account(it.getInt("id"), it.getString("username"),
+                            it.getString("email"), it.getString("phone"));
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Exception", e);
+        }
+        return account;
+    }
+
+    @Override
     public HallSession findSessionById(int id) {
         HallSession session = null;
         try (Connection cn = pool.getConnection();
@@ -338,5 +374,25 @@ public class PsqlStore implements Store {
             LOG.error("Exception", e);
         }
         return session;
+    }
+
+    @Override
+    public List<Integer> findHallById(int id) {
+        List<Integer> places = null;
+        try (Connection cn = pool.getConnection();
+             PreparedStatement ps =  cn.prepareStatement(
+                     "SELECT * FROM hall where hall.id=?")
+        ) {
+            ps.setInt(1, id);
+            try (ResultSet it = ps.executeQuery()) {
+                if (it.next()) {
+                    places = new ArrayList<>(Arrays.asList(
+                            (Integer[]) it.getArray("places").getArray()));
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Exception", e);
+        }
+        return places;
     }
 }

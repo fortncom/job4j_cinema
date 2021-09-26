@@ -10,6 +10,13 @@ public class Ticket {
     private int cell;
     private Account account;
 
+    public Ticket(HallSession sessionId, int row, int cell, Account account) {
+        this.sessionId = sessionId;
+        this.row = row;
+        this.cell = cell;
+        this.account = account;
+    }
+
     public Ticket(int id, int row, int cell, Account account, HallSession sessionId) {
         this.id = id;
         this.sessionId = sessionId;

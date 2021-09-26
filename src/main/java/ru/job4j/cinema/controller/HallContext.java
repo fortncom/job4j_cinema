@@ -17,7 +17,6 @@ public class HallContext implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         HallService service = new HallService();
-        service.init();
         ServletContext context = event.getServletContext();
         context.setAttribute("service", service);
         LOG.info("Init context");

@@ -3,3 +3,6 @@ CREATE TABLE session (
     time timestamp,
     price int
 );
+
+
+INSERT INTO session(time, price) values ('2023-05-15 17:30', 450);

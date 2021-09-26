@@ -6,6 +6,7 @@ import ru.job4j.cinema.model.Ticket;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.List;
 
 public interface Store {
 
@@ -23,9 +24,15 @@ public interface Store {
 
     Ticket findTicketById(int id);
 
+    Ticket findTicketByPlace(int row, int cell);
+
     Account findAccountById(int id);
 
     Account findAccountByEmail(String email);
 
+    Account findAccountByPhone(String phone);
+
     HallSession findSessionById(int id);
+
+    List<Integer> findHallById(int id);
 }

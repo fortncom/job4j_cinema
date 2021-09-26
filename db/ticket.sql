@@ -6,3 +6,4 @@ CREATE TABLE ticket (
     UNIQUE (row, cell),
     account_id INT NOT NULL REFERENCES account(id)
 );
+

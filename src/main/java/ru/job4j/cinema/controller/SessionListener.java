@@ -23,9 +23,6 @@ public class SessionListener implements HttpSessionListener {
 
     @Override
     public void sessionDestroyed(HttpSessionEvent se) {
-        HttpSession session = se.getSession();
-        HallService hallService = (HallService) session.getServletContext().getAttribute("service");
-        hallService.removeTicket((Place) session.getAttribute("place"));
-        LOG.info("Destroyed session: " + session.getId());
+        LOG.info("Destroyed session: " + se.getSession().getId());
     }
 }
